@@ -62,10 +62,6 @@ byte colPins[COLS] = {13, 12, 11, 10, 9, 6, 5};
 
 Keypad kpd = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
 
-unsigned long loopCount;
-unsigned long startTime;
-String msg;
-
 BLEDis bledis;
 BLEHidAdafruit blehid;
 
@@ -74,9 +70,6 @@ void setup() {
     //Serial.begin(115200);
     //while ( !Serial ) delay(10);   // for nrf52840 with native usb
     delay(1000);
-    loopCount = 0;
-    startTime = millis();
-    msg = "";
 /*
     Serial.println("Bluefruit52 HID Keyboard Example");
     Serial.println("--------------------------------\n");
@@ -148,6 +141,12 @@ void startAdv(void)
   Bluefruit.Advertising.start(0);                // 0 = Don't stop advertising after n seconds
 }
 
+uint8_t keycode[6] = { 0 };
+uint8_t modifier = 0;
+unsigned long loopCount = 0;
+unsigned long startTime = millis();
+String msg = "";
+
 void loop() {
     loopCount++;
     if ( (millis()-startTime)>5000 ) {
@@ -158,28 +157,18 @@ void loop() {
         startTime = millis();
         loopCount = 0;
     }
-    uint8_t keycode[6] = { 0 };
-    uint8_t modifier = 0;
+    
 
     // Fills kpd.key[ ] array with up-to 10 active keys.
     // Returns true if there are ANY active keys.
-    if (kpd.getKeys())
-    {
-        for (int i=0; i<LIST_MAX; i++)   // Scan the whole key list.
-        {
+    if (kpd.getKeys()) {
+        for (int i=0; i<LIST_MAX; i++) {   // Scan the whole key list.
             if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
             {
-                char keyChar;
                 switch (kpd.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
                     case PRESSED:
                     msg = " PRESSED.";
-                    keyChar = kpd.key[i].kchar;
-                    //if (keyChar != 'A' && keyChar != 'C' && keyChar != 'F' && keyChar != 'S') {
-                    if (keyChar != HID_KEY_ALT_LEFT && keyChar != HID_KEY_CONTROL_LEFT && keyChar != HID_KEY_GUI_LEFT && keyChar != HID_KEY_SHIFT_LEFT) {
-                      keycode[0] = keyChar;
-                      blehid.keyboardReport(modifier, keycode);
-                      //blehid.keyPress(keyChar);
-                    }
+                    stateChangedToPressed(kpd.key[i]);
                 break;
                     case HOLD:
                     msg = " HOLD.";
@@ -200,8 +189,30 @@ void loop() {
                 */
             }
         }
+    } else {
+      modifier = 0;
+      memset(keycode, 0, 6);
+      blehid.keyboardReport(modifier, keycode);
     }
 }  // End loop
+
+void stateChangedToPressed(Key key) {
+  char keyChar;
+  keyChar = key.kchar;
+  //if (keyChar != 'A' && keyChar != 'C' && keyChar != 'F' && keyChar != 'S') {
+  switch (keyChar) {
+    case HID_KEY_ALT_LEFT:
+    case HID_KEY_CONTROL_LEFT:
+    case HID_KEY_GUI_LEFT:
+    case HID_KEY_SHIFT_LEFT:
+    break;
+    default:
+    keycode[0] = keyChar;
+    //blehid.keyPress(keyChar);
+    blehid.keyboardReport(modifier, keycode);
+    break;
+  }
+}
 
 /**
  * Callback invoked when received Set LED from central.
