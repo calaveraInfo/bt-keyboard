@@ -4,10 +4,39 @@
 #define BCK 8
 
 // read; pullup; za diodou
-const byte ROWS = 5;
+const byte ROWS = 6;
 // write; pred tlacitkem
 const byte COLS = 7;
 
+//https://github.com/hathach/tinyusb/blob/master/src/class/hid/hid.h
+char hexaKeys[ROWS][COLS] = {
+  {HID_KEY_ALT_LEFT,
+   HID_KEY_CONTROL_LEFT,
+   HID_KEY_GUI_LEFT,
+   HID_KEY_SHIFT_LEFT,
+                                                          HID_KEY_SPACE, HID_KEY_TAB, HID_KEY_0},
+             {HID_KEY_A, HID_KEY_B, HID_KEY_C, HID_KEY_D, HID_KEY_E, HID_KEY_F, HID_KEY_G},
+             {HID_KEY_H, HID_KEY_I, HID_KEY_J, HID_KEY_K, HID_KEY_L, HID_KEY_M, HID_KEY_N},
+  {HID_KEY_O, HID_KEY_P, HID_KEY_Q, HID_KEY_R, HID_KEY_S, HID_KEY_T, HID_KEY_U},
+  {HID_KEY_V, HID_KEY_W, HID_KEY_X, HID_KEY_Y, HID_KEY_Z, HID_KEY_1, HID_KEY_2},
+  {HID_KEY_3, HID_KEY_4, HID_KEY_5, HID_KEY_6, HID_KEY_7, HID_KEY_8, HID_KEY_9}
+};
+
+/*
+char hexaKeys[ROWS][COLS] = {https://github.com/hathach/tinyusb/blob/master/src/class/hid/hid.h
+  {'A',
+   'C',
+   'F',
+   'S',
+                           'X', 'Y', 'Z'},
+      {'a', 'b', 'c', 'd', 'e', 'f', 'g'},
+      {'h', 'i', 'j', 'k', 'l', 'm', 'n'},
+  {'o','p', 'q', 'r', 's', 't', 'u'},
+  {'v','w', 'x', 'y', 'z', '1', '2'},
+  {'3','4', '5', '6', '7', '8', '9'}
+};
+*/
+/*
 char hexaKeys[ROWS][COLS] = {
       {'a', 'b', 'c', 'd', 'e', 'f', 'g'},
       {'h', 'i', 'j', 'k', 'l', 'm', ' '},
@@ -15,6 +44,7 @@ char hexaKeys[ROWS][COLS] = {
   {'u','v', 'w', 'x', 'y', 'z', ' '},
   {':','-', ')', '3', '4', '5', BCK},
 };
+*/
 
 /*
 char hexaKeys[ROWS][COLS] = {
@@ -27,7 +57,7 @@ char hexaKeys[ROWS][COLS] = {
 */
 
 
-byte rowPins[ROWS] = {A1, A2, A3, A4, A5};
+byte rowPins[ROWS] = {A0, A1, A2, A3, A4, A5};
 byte colPins[COLS] = {13, 12, 11, 10, 9, 6, 5};
 
 Keypad kpd = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
@@ -128,6 +158,8 @@ void loop() {
         startTime = millis();
         loopCount = 0;
     }
+    uint8_t keycode[6] = { 0 };
+    uint8_t modifier = 0;
 
     // Fills kpd.key[ ] array with up-to 10 active keys.
     // Returns true if there are ANY active keys.
@@ -137,17 +169,26 @@ void loop() {
         {
             if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
             {
+                char keyChar;
                 switch (kpd.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
                     case PRESSED:
                     msg = " PRESSED.";
-                    blehid.keyPress(kpd.key[i].kchar);
+                    keyChar = kpd.key[i].kchar;
+                    //if (keyChar != 'A' && keyChar != 'C' && keyChar != 'F' && keyChar != 'S') {
+                    if (keyChar != HID_KEY_ALT_LEFT && keyChar != HID_KEY_CONTROL_LEFT && keyChar != HID_KEY_GUI_LEFT && keyChar != HID_KEY_SHIFT_LEFT) {
+                      keycode[0] = keyChar;
+                      blehid.keyboardReport(modifier, keycode);
+                      //blehid.keyPress(keyChar);
+                    }
                 break;
                     case HOLD:
                     msg = " HOLD.";
                 break;
                     case RELEASED:
                     msg = " RELEASED.";
-                    blehid.keyRelease();
+                    memset(keycode, 0, 6);
+                    blehid.keyboardReport(modifier, keycode);
+                    //blehid.keyRelease();
                 break;
                     case IDLE:
                     msg = " IDLE.";
