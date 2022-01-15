@@ -1,7 +1,11 @@
 #include <bluefruit.h>
 #include <Keypad.h>
 
-#define BCK 8
+//#define BCK 8
+//#define TU_BIT(n) (1U << (n))
+//#define KEYBOARD_MODIFIER_LEFTSHIFT TU_BIT(1)
+
+const uint8_t ALL_MODIFIERS = KEYBOARD_MODIFIER_LEFTALT | KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_LEFTSHIFT;
 
 // read; pullup; za diodou
 const byte ROWS = 6;
@@ -61,27 +65,47 @@ byte rowPins[ROWS] = {A0, A1, A2, A3, A4, A5};
 byte colPins[COLS] = {13, 12, 11, 10, 9, 6, 5};
 
 Keypad kpd = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
-
 BLEDis bledis;
 BLEHidAdafruit blehid;
 
+const bool DEBUG = false;
+
+void print(String msg) {
+  if (DEBUG) {
+    Serial.print(msg);
+  }
+}
+
+void println(String msg) {
+  if (DEBUG) {
+    Serial.println(msg);
+  }
+}
+
+
+void print(uint8_t msg) {
+  if (DEBUG) {
+    Serial.print(msg);
+  }
+}
+
+void println(unsigned long msg) {
+  if (DEBUG) {
+    Serial.println(msg);
+  }
+}
+
 void setup() {
     pinMode(A0, INPUT_PULLUP);
-    //Serial.begin(115200);
-    //while ( !Serial ) delay(10);   // for nrf52840 with native usb
-    delay(1000);
-/*
+    if (DEBUG) {
+      Serial.begin(115200);
+      while ( !Serial ) delay(10); // for nrf52840 with native usb
+    } else {
+      delay(1000);
+    }
+
     Serial.println("Bluefruit52 HID Keyboard Example");
-    Serial.println("--------------------------------\n");
   
-    Serial.println();
-    Serial.println("Go to your phone's Bluetooth settings to pair your device");
-    Serial.println("then open an application that accepts keyboard input");
-  
-    Serial.println();
-    Serial.println("Enter the character(s) to send:");
-    Serial.println();  
-*/  
     Bluefruit.begin();
     Bluefruit.setTxPower(4);    // Check bluefruit.h for supported values
     Bluefruit.setName("Bluefruit52");
@@ -143,21 +167,14 @@ void startAdv(void)
 
 uint8_t keycode[6] = { 0 };
 uint8_t modifier = 0;
+bool guiModifier = false;
 unsigned long loopCount = 0;
 unsigned long startTime = millis();
 String msg = "";
 
 void loop() {
     loopCount++;
-    if ( (millis()-startTime)>5000 ) {
-    /*
-        Serial.print("Average loops per second = ");
-        Serial.println(loopCount/5);
-    */
-        startTime = millis();
-        loopCount = 0;
-    }
-    
+    printStats();
 
     // Fills kpd.key[ ] array with up-to 10 active keys.
     // Returns true if there are ANY active keys.
@@ -175,43 +192,89 @@ void loop() {
                 break;
                     case RELEASED:
                     msg = " RELEASED.";
-                    memset(keycode, 0, 6);
-                    blehid.keyboardReport(modifier, keycode);
-                    //blehid.keyRelease();
+                    stateChangedToReleased(kpd.key[i]);
                 break;
                     case IDLE:
                     msg = " IDLE.";
                 }
-                /*
-                Serial.print("Key ");
-                Serial.print(kpd.key[i].kchar);
-                Serial.println(msg);
-                */
+                print("Modifier ");
+                print(modifier);
+                print(" Key ");
+                print((uint8_t)kpd.key[i].kchar);
+                print(" Code ");
+                print(keycode[0]);
+                //print(kpd.key[i].kchar);
+                println(msg);
+                
             }
         }
     } else {
+      /*
       modifier = 0;
       memset(keycode, 0, 6);
       blehid.keyboardReport(modifier, keycode);
+      */
     }
 }  // End loop
+
+void printStats() {
+  if ((millis() - startTime) > 5000) {
+    print("Average loops per second = ");
+    println(loopCount/5);
+    startTime = millis();
+    loopCount = 0;
+  }
+}
 
 void stateChangedToPressed(Key key) {
   char keyChar;
   keyChar = key.kchar;
   //if (keyChar != 'A' && keyChar != 'C' && keyChar != 'F' && keyChar != 'S') {
   switch (keyChar) {
-    case HID_KEY_ALT_LEFT:
-    case HID_KEY_CONTROL_LEFT:
     case HID_KEY_GUI_LEFT:
+    guiModifier = true;
+    break;
+    case HID_KEY_ALT_LEFT:
+    modifier = modifier | KEYBOARD_MODIFIER_LEFTALT;
+    break;
+    case HID_KEY_CONTROL_LEFT:
+    modifier = modifier | KEYBOARD_MODIFIER_LEFTCTRL;
+    break;
     case HID_KEY_SHIFT_LEFT:
+    modifier = modifier | KEYBOARD_MODIFIER_LEFTSHIFT;
     break;
     default:
-    keycode[0] = keyChar;
-    //blehid.keyPress(keyChar);
+    if (!(modifier == ALL_MODIFIERS && guiModifier)) {
+      keycode[0] = keyChar;
+      //blehid.keyPress(keyChar);
+      blehid.keyboardReport(modifier, keycode);
+    }
+    break;
+  }
+}
+
+void stateChangedToReleased(Key key) {
+  char keyChar;
+  keyChar = key.kchar;
+  switch (keyChar) {
+    case HID_KEY_GUI_LEFT:
+    guiModifier = false;
+    break;
+    case HID_KEY_ALT_LEFT:
+    modifier = modifier & (~KEYBOARD_MODIFIER_LEFTALT);
+    break;
+    case HID_KEY_CONTROL_LEFT:
+    modifier = modifier & (~KEYBOARD_MODIFIER_LEFTCTRL);
+    break;
+    case HID_KEY_SHIFT_LEFT:
+    modifier = modifier & (~KEYBOARD_MODIFIER_LEFTSHIFT);
+    break;
+    default:
+    memset(keycode, 0, 6);
     blehid.keyboardReport(modifier, keycode);
     break;
   }
+  //blehid.keyRelease();
 }
 
 /**
