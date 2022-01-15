@@ -5,6 +5,8 @@
 //#define TU_BIT(n) (1U << (n))
 //#define KEYBOARD_MODIFIER_LEFTSHIFT TU_BIT(1)
 
+#define MAX_KEYCODES 6
+
 const uint8_t ALL_MODIFIERS = KEYBOARD_MODIFIER_LEFTALT | KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_LEFTSHIFT;
 
 // read; pullup; za diodou
@@ -18,13 +20,28 @@ char hexaKeys[ROWS][COLS] = {
    HID_KEY_CONTROL_LEFT,
    HID_KEY_GUI_LEFT,
    HID_KEY_SHIFT_LEFT,
-                                                          HID_KEY_SPACE, HID_KEY_TAB, HID_KEY_0},
+                                                          HID_KEY_SPACE, HID_KEY_RETURN, HID_KEY_0},
              {HID_KEY_A, HID_KEY_B, HID_KEY_C, HID_KEY_D, HID_KEY_E, HID_KEY_F, HID_KEY_G},
              {HID_KEY_H, HID_KEY_I, HID_KEY_J, HID_KEY_K, HID_KEY_L, HID_KEY_M, HID_KEY_N},
   {HID_KEY_O, HID_KEY_P, HID_KEY_Q, HID_KEY_R, HID_KEY_S, HID_KEY_T, HID_KEY_U},
   {HID_KEY_V, HID_KEY_W, HID_KEY_X, HID_KEY_Y, HID_KEY_Z, HID_KEY_1, HID_KEY_2},
   {HID_KEY_3, HID_KEY_4, HID_KEY_5, HID_KEY_6, HID_KEY_7, HID_KEY_8, HID_KEY_9}
 };
+
+char altKeys[ROWS][COLS] = {
+  {HID_KEY_ALT_LEFT,
+   HID_KEY_CONTROL_LEFT,
+   HID_KEY_GUI_LEFT,
+   HID_KEY_SHIFT_LEFT,
+                                                          HID_KEY_TAB, HID_KEY_ESCAPE, HID_KEY_BACKSPACE},
+             {HID_KEY_A, HID_KEY_B, HID_KEY_C, HID_KEY_D, HID_KEY_E, HID_KEY_F, HID_KEY_G},
+             {HID_KEY_H, HID_KEY_I, HID_KEY_J, HID_KEY_K, HID_KEY_L, HID_KEY_M, HID_KEY_N},
+  {HID_KEY_O, HID_KEY_P, HID_KEY_Q, HID_KEY_R, HID_KEY_S, HID_KEY_T, HID_KEY_U},
+  {HID_KEY_V, HID_KEY_W, HID_KEY_X, HID_KEY_Y, HID_KEY_Z, HID_KEY_1, HID_KEY_2},
+  {HID_KEY_3, HID_KEY_4, HID_KEY_5, HID_KEY_6, HID_KEY_7, HID_KEY_8, HID_KEY_9}
+};
+
+char altKeyMap[256] = {0};
 
 /*
 char hexaKeys[ROWS][COLS] = {https://github.com/hathach/tinyusb/blob/master/src/class/hid/hid.h
@@ -104,6 +121,12 @@ void setup() {
       delay(1000);
     }
 
+    for (int r = 0; r < ROWS; r++) {
+      for (int c = 0; c < COLS; c++) {
+        altKeyMap[(byte)hexaKeys[r][c]] = altKeys[r][c];
+      }
+    }
+
     Serial.println("Bluefruit52 HID Keyboard Example");
   
     Bluefruit.begin();
@@ -165,7 +188,7 @@ void startAdv(void)
   Bluefruit.Advertising.start(0);                // 0 = Don't stop advertising after n seconds
 }
 
-uint8_t keycode[6] = { 0 };
+uint8_t keycode[MAX_KEYCODES] = {0};
 uint8_t modifier = 0;
 bool guiModifier = false;
 unsigned long loopCount = 0;
@@ -179,7 +202,7 @@ void loop() {
     // Fills kpd.key[ ] array with up-to 10 active keys.
     // Returns true if there are ANY active keys.
     if (kpd.getKeys()) {
-        for (int i=0; i<LIST_MAX; i++) {   // Scan the whole key list.
+        for (int i = 0; i < LIST_MAX; i++) {   // Scan the whole key list.
             if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
             {
                 switch (kpd.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
@@ -205,7 +228,6 @@ void loop() {
                 print(keycode[0]);
                 //print(kpd.key[i].kchar);
                 println(msg);
-                
             }
         }
     } else {
@@ -233,6 +255,7 @@ void stateChangedToPressed(Key key) {
   switch (keyChar) {
     case HID_KEY_GUI_LEFT:
     guiModifier = true;
+    removeAllKeyCodes();
     break;
     case HID_KEY_ALT_LEFT:
     modifier = modifier | KEYBOARD_MODIFIER_LEFTALT;
@@ -245,11 +268,25 @@ void stateChangedToPressed(Key key) {
     break;
     default:
     if (!(modifier == ALL_MODIFIERS && guiModifier)) {
-      keycode[0] = keyChar;
+      if (guiModifier) {
+        keycode[0] = altKeyMap[(byte)keyChar];
+      } else {
+        keycode[0] = keyChar;
+      }
       //blehid.keyPress(keyChar);
       blehid.keyboardReport(modifier, keycode);
     }
     break;
+  }
+}
+
+void removeAllKeyCodes() {
+  memset(keycode, 0, MAX_KEYCODES);
+}
+
+void addPressedKey(Key key) {
+  for (int i = 0; i < LIST_MAX; i++) {
+    
   }
 }
 
@@ -259,6 +296,7 @@ void stateChangedToReleased(Key key) {
   switch (keyChar) {
     case HID_KEY_GUI_LEFT:
     guiModifier = false;
+    removeAllKeyCodes();
     break;
     case HID_KEY_ALT_LEFT:
     modifier = modifier & (~KEYBOARD_MODIFIER_LEFTALT);
@@ -270,7 +308,7 @@ void stateChangedToReleased(Key key) {
     modifier = modifier & (~KEYBOARD_MODIFIER_LEFTSHIFT);
     break;
     default:
-    memset(keycode, 0, 6);
+    removeAllKeyCodes();
     blehid.keyboardReport(modifier, keycode);
     break;
   }
