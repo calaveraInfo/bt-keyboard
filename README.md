@@ -10,6 +10,8 @@ I hate on-screen keyboards. No amount of inovation or training brings it's typin
 
 At first I intended to create just minimalistic rectangle full of buttons that would fit in my hand but when I tested a cardboard form prototype I noticed it's not very convenient. I started to make adjustments which I again tested on a cardboard prototypes and soon several branches of promising designs evolved from these iterations. It was interesting how weird shapes came out when I judged them only by the ergonomics. Then I chose one of the designs and created a functional prototype.
 
+![Keyboard front](front.jpg)
+
 ## Key ideas
 
 ### Hybrid of thumb keyboard and chording keyboard
@@ -20,7 +22,13 @@ I wanted to design primarily a thumb keyboard but I also want to put other finge
 
 ### Physical and logical keypress inversion
 
+How to achieve design that can be held by single hand which would at the same time allow pressing multiple button combinations at once? By reversing the keypress logic for fingers other than thumb - the key is logicaly pressed when it's physically released. That way fingers may hold the keyboard most of the time while thumb writes and when a modifier keypress is occasionally needed, respective finger is lifted, but the keyboard is still held firmly by the other modifier fingers.
 
+![Keyboard modifiers location](modifiers.jpg)
+
+### Electronic design
+
+No big idea here, the keyboard is basic keypad matrix soldered on prototyping board. All the logic is caried out by Adafruit Feather nRF52840 which provides very simple interaface for all needed functions from li-ion battery charging to Bluetooth.
 
 ## FAQ
 
@@ -29,8 +37,8 @@ I wanted to design primarily a thumb keyboard but I also want to put other finge
 	<dt>Personal hobby sideproject. No intention to develop real product and high probability of usual fate of sideprojects.</dt>
 	<dd>Are any of these ideas protected by any intellectual property?</dd>
 	<dt>I haven't done any research so I don't know and I don't intend to protect it myself. Even if someone takes this repository verbatim and makes it a proper commercial product I would be happy and I would be their first customer.</dt>
-	<dd></dd>
-	<dt></dt>
-	<dd></dd>
-	<dt></dt>
 </dl>
+
+![Keyboard in use](usage.jpg)
+
+![Keyboard back](back.jpg)
