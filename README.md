@@ -37,10 +37,10 @@ No big idea here, the keyboard is basic 6x7 keypad matrix, just with a bit fancy
 ## FAQ
 
 <dl>
-	<dd>What's the nature of this project?</dd>
-	<dt>Personal hobby sideproject. No intention to develop real product and high probability of usual fate of sideprojects.</dt>
-	<dd>Are any of these ideas protected by any intellectual property?</dd>
-	<dt>I haven't done any research so I don't know and I don't intend to protect it myself. Even if someone takes this repository verbatim and makes it a proper commercial product I would be happy and I would be their first customer.</dt>
+	<dt>What's the nature of this project?</dt>
+	<dd>Personal hobby sideproject. No intention to develop real product and high probability of usual fate of sideprojects.</dd>
+	<dt>Are any of these ideas protected by any intellectual property?</dt>
+	<dd>I haven't done any research so I don't know and I don't intend to protect it myself. Even if someone takes this repository verbatim and makes it a proper commercial product I would be happy and I would be their first customer.</dd>
 </dl>
 
 ### Isn't the left side too far for the thumb?
